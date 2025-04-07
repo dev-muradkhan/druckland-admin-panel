@@ -10,7 +10,7 @@ import { User, UserFormData } from '@/types/users';
 interface EditUserPageProps {
   initialUser: User; // Receive initial user data as prop
   userId: string;     // Receive user ID as prop
-  // Receive user ID as prop
+
 }
 
 export default function EditUserPage({ initialUser, userId }: EditUserPageProps) { 
