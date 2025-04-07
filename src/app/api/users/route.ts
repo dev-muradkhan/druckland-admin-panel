@@ -1,62 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { User } from '@/types/users';
+// Import functions from the shared mock data store
+import { 
+    getUsers as getUsersFromStore, 
+    addUser as addUserToStore, 
+    deleteUsers as deleteUsersFromStore,
+    checkEmailExists 
+} from '@/lib/mockUserData'; 
 
-// In-memory store for mock users (replace with database interaction later)
-let mockUsers: User[] = [
-  {
-    id: 'user-1',
-    username: 'Murad',
-    email: 'murad@gmail.com',
-    phoneNumber: '(555) 123-4567',
-    role: 'Admin',
-    status: 'Active',
-    createdAt: '2025-02-18T10:30:00Z',
-    updatedAt: '2025-02-18T10:30:00Z'
-  },
-  {
-    id: 'user-2',
-    username: 'Shafiq Islam',
-    email: 'shafiqislam@gmail.com',
-    phoneNumber: '(555) 987-6543',
-    role: 'Customer',
-    status: 'Active',
-    createdAt: '2025-02-20T14:45:00Z',
-    updatedAt: '2025-02-20T14:45:00Z',
-    orderCount: 5,
-    reviewCount: 2
-  },
-  {
-    id: 'user-3',
-    username: 'John Doe',
-    email: 'johndoe@gmail.com',
-    phoneNumber: '(555) 555-5555',
-    role: 'Customer',
-    status: 'Inactive',
-    createdAt: '2025-02-22T09:20:00Z',
-    updatedAt: '2025-02-22T09:20:00Z',
-    orderCount: 1
-  },
-  {
-    id: 'user-4',
-    username: 'Jane Smith',
-    email: 'janesmith@gmail.com',
-    phoneNumber: '(555) 111-2222',
-    role: 'Customer',
-    status: 'Banned',
-    createdAt: '2025-02-24T14:10:00Z',
-    updatedAt: '2025-02-24T14:10:00Z'
-  },
-  {
-    id: 'user-5',
-    username: 'Admin User',
-    email: 'admin@druckland.com',
-    phoneNumber: '(555) 333-4444',
-    role: 'Admin',
-    status: 'Active',
-    createdAt: '2025-02-25T16:30:00Z',
-    updatedAt: '2025-02-25T16:30:00Z'
-  }
-];
+// Remove local mockUsers array definition
 
 export async function GET(request: NextRequest) {
   try {
@@ -71,8 +23,11 @@ export async function GET(request: NextRequest) {
     const sortField = searchParams.get('sortField') || 'createdAt';
     const sortOrder = searchParams.get('sortOrder') || 'desc';
 
+    // Get users from the shared store
+    const allUsers = getUsersFromStore();
+
     // --- Filtering ---
-    let filteredUsers = mockUsers.filter(user => {
+    let filteredUsers = allUsers.filter(user => {
       // Status filter
       if (statusFilter !== 'All' && user.status !== statusFilter) {
         return false;
@@ -163,8 +118,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: "Missing required fields (username, email, role, status)" }, { status: 400 });
     }
 
-    // Check for duplicate email (simple check for mock data)
-    if (mockUsers.some(user => user.email === newUserPartial.email)) {
+    // Check for duplicate email using shared function
+    if (checkEmailExists(newUserPartial.email)) {
        return NextResponse.json({ message: "Email already exists" }, { status: 409 }); // Conflict
     }
 
@@ -178,9 +133,12 @@ export async function POST(request: NextRequest) {
       orderCount: newUserPartial.orderCount || 0,
       reviewCount: newUserPartial.reviewCount || 0,
       profilePicture: newUserPartial.profilePicture || undefined,
+      // Ensure password field exists if needed by User type (added previously)
+      password: newUserPartial.password || '', 
     };
 
-    mockUsers.push(newUser);
+    // Add user using the shared function
+    addUserToStore(newUser); 
 
     return NextResponse.json(newUser, { status: 201 }); // 201 Created
 
@@ -204,9 +162,8 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ message: "No user IDs provided for deletion" }, { status: 400 });
     }
 
-    const initialLength = mockUsers.length;
-    mockUsers = mockUsers.filter(user => !idsToDelete.includes(user.id));
-    const deletedCount = initialLength - mockUsers.length;
+    // Delete users using the shared function
+    const deletedCount = deleteUsersFromStore(idsToDelete);
 
     if (deletedCount === 0) {
         return NextResponse.json({ message: "No matching users found to delete" }, { status: 404 });
